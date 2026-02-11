@@ -1,0 +1,44 @@
+name: Bot_Algo CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
+
+      - name: Config loader self-test
+        run: python config/config_loader.py
+
+      - name: State manager self-test
+        run: python core/state_manager.py
+
+      - name: Correlation guard self-test
+        run: python core/correlation_guard.py
+
+      - name: Rate limiter self-test
+        run: python core/rate_limiter.py

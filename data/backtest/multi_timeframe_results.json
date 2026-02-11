@@ -1,0 +1,236 @@
+{
+  "NIFTY": {
+    "5yr": {
+      "baseline": {
+        "trades": 86,
+        "wins": 65,
+        "losses": 21,
+        "win_rate": 75.5813953488372,
+        "roi": 1370.1187118367122,
+        "sharpe": 0.8930625812964421,
+        "max_dd": -2527.637772042107,
+        "profit_factor": 1.394180959556809,
+        "final_capital": 245019.83431007576
+      },
+      "garch": {
+        "trades": 86,
+        "wins": 55,
+        "losses": 31,
+        "win_rate": 63.95348837209303,
+        "roi": -1470.835192307426,
+        "sharpe": -1.104797419823059,
+        "max_dd": -219.0078757514276,
+        "profit_factor": 0.6210378588991544,
+        "final_capital": -228472.57774574409
+      },
+      "enhanced": {
+        "trades": 74,
+        "wins": 53,
+        "losses": 21,
+        "win_rate": 71.62162162162163,
+        "roi": -455.29961819542086,
+        "sharpe": -0.26995973184290156,
+        "max_dd": -2527.6377720421074,
+        "profit_factor": 0.9001940248058523,
+        "final_capital": -59216.61487589074
+      }
+    },
+    "1yr": {
+      "baseline": {
+        "trades": 14,
+        "wins": 10,
+        "losses": 4,
+        "win_rate": 71.42857142857143,
+        "roi": 381.6491736789567,
+        "sharpe": 2.5037136672874003,
+        "max_dd": -157.0491921547074,
+        "profit_factor": 2.2094401936455697,
+        "final_capital": 80274.87833479856
+      },
+      "garch": {
+        "trades": 14,
+        "wins": 10,
+        "losses": 4,
+        "win_rate": 71.42857142857143,
+        "roi": -49.38898485999456,
+        "sharpe": -0.3794335684556913,
+        "max_dd": -136.85768835226,
+        "profit_factor": 0.8675306877293085,
+        "final_capital": 8435.170877034743
+      },
+      "enhanced": {
+        "trades": 13,
+        "wins": 9,
+        "losses": 4,
+        "win_rate": 69.23076923076923,
+        "roi": 308.60762488352054,
+        "sharpe": 2.124879242112693,
+        "max_dd": -157.0491921547074,
+        "profit_factor": 1.9779726810403009,
+        "final_capital": 68101.28443417425
+      }
+    },
+    "6mo": {
+      "baseline": {
+        "trades": 5,
+        "wins": 3,
+        "losses": 2,
+        "win_rate": 60.0,
+        "roi": 27.81261534498106,
+        "sharpe": 0.4177289870899252,
+        "max_dd": -157.0491921547074,
+        "profit_factor": 1.1701262353217268,
+        "final_capital": 21302.106817917353
+      },
+      "garch": {
+        "trades": 5,
+        "wins": 4,
+        "losses": 1,
+        "win_rate": 80.0,
+        "roi": -55.08821465470546,
+        "sharpe": -1.1261521936139283,
+        "max_dd": -136.85768835226,
+        "profit_factor": 0.5858211945093786,
+        "final_capital": 7485.299054608599
+      },
+      "enhanced": {
+        "trades": 4,
+        "wins": 2,
+        "losses": 2,
+        "win_rate": 50.0,
+        "roi": -45.22893345045498,
+        "sharpe": -0.7996638114949516,
+        "max_dd": -157.0491921547074,
+        "profit_factor": 0.7233403590384978,
+        "final_capital": 9128.512917293054
+      }
+    },
+    "3mo": {
+      "baseline": null,
+      "garch": null,
+      "enhanced": null
+    },
+    "1mo": {
+      "baseline": null,
+      "garch": null,
+      "enhanced": null
+    }
+  },
+  "BANKNIFTY": {
+    "5yr": {
+      "baseline": {
+        "trades": 86,
+        "wins": 65,
+        "losses": 21,
+        "win_rate": 75.5813953488372,
+        "roi": -933.3374695977618,
+        "sharpe": -0.43489587210415925,
+        "max_dd": -11210.939924158658,
+        "profit_factor": 0.8373080182861178,
+        "final_capital": -138889.60604420924
+      },
+      "garch": {
+        "trades": 86,
+        "wins": 56,
+        "losses": 30,
+        "win_rate": 65.11627906976744,
+        "roi": -872.5953478585814,
+        "sharpe": -0.5742971895113966,
+        "max_dd": -3620.1419742336966,
+        "profit_factor": 0.7902722671109413,
+        "final_capital": -128765.91706294181
+      },
+      "enhanced": {
+        "trades": 61,
+        "wins": 45,
+        "losses": 16,
+        "win_rate": 73.77049180327869,
+        "roi": 735.9871385413143,
+        "sharpe": 0.5898879708490006,
+        "max_dd": -66793.33530396219,
+        "profit_factor": 1.2530713967899538,
+        "final_capital": 139331.21762312364
+      }
+    },
+    "1yr": {
+      "baseline": {
+        "trades": 14,
+        "wins": 11,
+        "losses": 3,
+        "win_rate": 78.57142857142857,
+        "roi": 25.6453350715628,
+        "sharpe": 0.09073740569094099,
+        "max_dd": -418.8366879441595,
+        "profit_factor": 1.03687942546037,
+        "final_capital": 20940.893366771634
+      },
+      "garch": {
+        "trades": 14,
+        "wins": 10,
+        "losses": 4,
+        "win_rate": 71.42857142857143,
+        "roi": 58.92592129348172,
+        "sharpe": 0.3982069605049635,
+        "max_dd": -305.8654861784122,
+        "profit_factor": 1.1493981822602442,
+        "final_capital": 26487.658846444327
+      },
+      "enhanced": {
+        "trades": 9,
+        "wins": 6,
+        "losses": 3,
+        "win_rate": 66.66666666666666,
+        "roi": 215.15442489614549,
+        "sharpe": 2.5373111694480563,
+        "max_dd": -89.29220216587693,
+        "profit_factor": 2.138309015206865,
+        "final_capital": 52525.747987838404
+      }
+    },
+    "6mo": {
+      "baseline": {
+        "trades": 5,
+        "wins": 4,
+        "losses": 1,
+        "win_rate": 80.0,
+        "roi": 193.6252846010604,
+        "sharpe": 4.663021856999856,
+        "max_dd": 0.0,
+        "profit_factor": 4.002933915943558,
+        "final_capital": 48937.557221019546
+      },
+      "garch": {
+        "trades": 5,
+        "wins": 4,
+        "losses": 1,
+        "win_rate": 80.0,
+        "roi": 142.200362839965,
+        "sharpe": 5.044010825716402,
+        "max_dd": 0.0,
+        "profit_factor": 4.814526314503613,
+        "final_capital": 40366.73521333959
+      },
+      "enhanced": {
+        "trades": 2,
+        "wins": 1,
+        "losses": 1,
+        "win_rate": 50.0,
+        "roi": 16.47357102712399,
+        "sharpe": 0.5775871251654153,
+        "max_dd": 0.0,
+        "profit_factor": 1.2554885600606362,
+        "final_capital": 19412.265720306365
+      }
+    },
+    "3mo": {
+      "baseline": null,
+      "garch": null,
+      "enhanced": null
+    },
+    "1mo": {
+      "baseline": null,
+      "garch": null,
+      "enhanced": null
+    }
+  }
+}

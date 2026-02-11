@@ -1,0 +1,18 @@
+# Minimal dependencies for HuggingFace Spaces deployment
+# Paper Trading System
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Binance API
+python-binance>=1.0.17
+
+# WebSocket for real-time data
+websockets>=12.0
+
+# HTTP requests
+requests>=2.31.0
+
+# Web UI for Hugging Face Spaces
+gradio>=4.0.0

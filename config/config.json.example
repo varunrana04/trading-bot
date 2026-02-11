@@ -1,0 +1,28 @@
+{
+    "zerodha": {
+        "api_key": "YOUR_ZERODHA_API_KEY",
+        "api_secret": "YOUR_ZERODHA_API_SECRET",
+        "access_token": "YOUR_ZERODHA_ACCESS_TOKEN"
+    },
+    "binance": {
+        "api_key": "YOUR_BINANCE_API_KEY",
+        "api_secret": "YOUR_BINANCE_API_SECRET"
+    },
+    "capital": {
+        "crypto_usd": 100.0,
+        "indian_inr": 10000.0
+    },
+    "risk_limits": {
+        "max_daily_loss_pct": -5.0,
+        "max_drawdown_pct": -15.0,
+        "max_consecutive_losses": 5,
+        "max_position_per_strategy_pct": 20.0
+    },
+    "optimization": {
+        "in_sample_days": 90,
+        "out_sample_days": 30,
+        "reopt_frequency_days": 30,
+        "min_sharpe_ratio": 0.5,
+        "min_win_rate": 0.50
+    }
+}

@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  bot:
+    build: .
+    container_name: bot_algo
+    env_file:
+      - .env
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./results:/app/results
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7860')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  monitor:
+    build: .
+    container_name: bot_monitor
+    command: python monitoring/unified_monitor.py
+    env_file:
+      - .env
+    volumes:
+      - ./results:/app/results
+      - ./logs:/app/logs
+    depends_on:
+      - bot
+    restart: unless-stopped

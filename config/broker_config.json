@@ -1,0 +1,20 @@
+{
+  "binance": {
+    "api_key": "myUnTS9BWRKLIiv2lafBYZi2gQoAJW8sXWce7QkxtANsNY7W5j4uegGSJh82NcAg",
+    "api_secret": "voRfVkZzLqPwFh7wxc2K2T9QpxMcp01ua6VECqhz9lSRGavwcvfZpra02NGoH7cr",
+    "testnet": false
+  },
+  "oanda": {
+    "api_key": "3e5d95791fa0f68fb39af7d2b13e9912-db60f28c83e6bf0332381546addd30a1",
+    "account_id": "101-004-28091816-001",
+    "practice": true
+  },
+  "alpha_vantage": {
+    "api_key": "QUTR13MRZUCAJYSC"
+  },
+  "zerodha": {
+    "api_key": "vgxpk9l5xayu97op",
+    "api_secret": "gmuav3gw12cumigy9buftmlxcpk4ntgg",
+    "access_token": "rIwbxMqPkpVrKq2My4GJa45CjRfhRkZn"
+  }
+}

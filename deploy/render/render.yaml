@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: trading-bot
+    runtime: docker
+    region: singapore
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 7860
+      - key: STARTING_BALANCE
+        value: 100000
+      - key: MIN_LEVERAGE
+        value: 10
+      - key: MAX_LEVERAGE
+        value: 50

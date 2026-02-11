@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/*.log
+*.csv
+
+# Environment / Secrets
+.env
+*.env
+config/config.json
+
+# Temp files
+*.tmp
+*.bak
+*.cache
+
+# Archive (cleaned up files)
+archive/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Backtest results (too large for git)
+backtests/results/
+
+# Trading logs (generated)
+trade_log_*.csv
+*.log
+
+# State files (generated at runtime)
+*_state.json
+
+# Keep specific JSON files that are templates/configs
+!config/config.json.example
+!bots/options/broker_config.json
+!bots/options/n8n_fundamentals/n8n_workflows/*.json

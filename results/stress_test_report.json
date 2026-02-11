@@ -1,0 +1,299 @@
+{
+  "timestamp": "2026-02-10T23:13:26.733914",
+  "summary": {
+    "total": 46,
+    "passed": 46,
+    "failed": 0,
+    "warnings": 0
+  },
+  "grade": "A+",
+  "categories": {
+    "Edge Cases": [
+      8,
+      0,
+      0
+    ],
+    "Volatility Simulations": [
+      8,
+      0,
+      0
+    ],
+    "Circuit Breaker": [
+      3,
+      0,
+      0
+    ],
+    "Correlation Guard": [
+      3,
+      0,
+      0
+    ],
+    "Rapid Cycling": [
+      2,
+      0,
+      0
+    ],
+    "Balance Drain": [
+      1,
+      0,
+      0
+    ],
+    "State Manager": [
+      4,
+      0,
+      0
+    ],
+    "Config Validation": [
+      5,
+      0,
+      0
+    ],
+    "Rate Limiter": [
+      3,
+      0,
+      0
+    ],
+    "Signal Production": [
+      5,
+      0,
+      0
+    ],
+    "24hr Simulation": [
+      4,
+      0,
+      0
+    ]
+  },
+  "details": [
+    {
+      "status": "PASS",
+      "test": "Zero-near prices",
+      "detail": "Indicators computed, 422 NaN values"
+    },
+    {
+      "status": "PASS",
+      "test": "Large prices ($1M)",
+      "detail": "No overflow, RSI range: 0.0-97.6"
+    },
+    {
+      "status": "PASS",
+      "test": "NaN in price data",
+      "detail": "Handled gracefully, 0 NaN in RSI"
+    },
+    {
+      "status": "PASS",
+      "test": "Inf in price data",
+      "detail": "Handled without propagation"
+    },
+    {
+      "status": "PASS",
+      "test": "Empty DataFrame",
+      "detail": "No crash on empty input"
+    },
+    {
+      "status": "PASS",
+      "test": "Single row DataFrame",
+      "detail": "Handled without crash"
+    },
+    {
+      "status": "PASS",
+      "test": "Negative prices",
+      "detail": "Sanitized to positive values by IndicatorCalculator"
+    },
+    {
+      "status": "PASS",
+      "test": "Insufficient data signal",
+      "detail": "Correctly returned HOLD"
+    },
+    {
+      "status": "PASS",
+      "test": "Volatility: Flash Crash -50%",
+      "detail": "Signal=SELL, Conf=0.4"
+    },
+    {
+      "status": "PASS",
+      "test": "Volatility: V-Recovery -40%/+40%",
+      "detail": "Signal=HOLD, Conf=0"
+    },
+    {
+      "status": "PASS",
+      "test": "Volatility: Pump and Dump 5x",
+      "detail": "Signal=SELL, Conf=0.8"
+    },
+    {
+      "status": "PASS",
+      "test": "Volatility: Sideways Chop",
+      "detail": "Signal=BUY, Conf=0.6"
+    },
+    {
+      "status": "PASS",
+      "test": "Volatility: High Vol (5%)",
+      "detail": "Signal=SELL, Conf=0.4"
+    },
+    {
+      "status": "PASS",
+      "test": "Volatility: Extreme Vol (15%)",
+      "detail": "Signal=SELL, Conf=0.4"
+    },
+    {
+      "status": "PASS",
+      "test": "Volatility: Strong Uptrend",
+      "detail": "Signal=BUY, Conf=0.4"
+    },
+    {
+      "status": "PASS",
+      "test": "Volatility: Strong Downtrend",
+      "detail": "Signal=SELL, Conf=0.6"
+    },
+    {
+      "status": "PASS",
+      "test": "Circuit breaker activated",
+      "detail": "After 3 losses, blocked 17 trades"
+    },
+    {
+      "status": "PASS",
+      "test": "Cooldown expiry resumes trading",
+      "detail": ""
+    },
+    {
+      "status": "PASS",
+      "test": "Daily loss circuit breaker",
+      "detail": "Triggered on $-405.40 loss"
+    },
+    {
+      "status": "PASS",
+      "test": "Crypto group limited",
+      "detail": "Opened 2/3: ['BTCUSDT', 'ETHUSDT']"
+    },
+    {
+      "status": "PASS",
+      "test": "Metals group limited",
+      "detail": "Opened 2/2: ['XAUUSDT', 'XAGUSDT']"
+    },
+    {
+      "status": "PASS",
+      "test": "Opposite direction allowed",
+      "detail": "SELL passed while 2 BUYs exist"
+    },
+    {
+      "status": "PASS",
+      "test": "100 trades completed",
+      "detail": "in 0.37s (271 trades/sec)"
+    },
+    {
+      "status": "PASS",
+      "test": "Balance is finite after 100 trades",
+      "detail": "$82,319.85"
+    },
+    {
+      "status": "PASS",
+      "test": "Balance nearly drained",
+      "detail": "$0.00 after 50 trades"
+    },
+    {
+      "status": "PASS",
+      "test": "Large state (50 positions)",
+      "detail": "Saved and loaded correctly"
+    },
+    {
+      "status": "PASS",
+      "test": "Corrupt state file",
+      "detail": "Handled gracefully, returned empty"
+    },
+    {
+      "status": "PASS",
+      "test": "Missing state dir",
+      "detail": "No crash on missing directory"
+    },
+    {
+      "status": "PASS",
+      "test": "Rapid sequential saves",
+      "detail": "No corruption from rapid writes"
+    },
+    {
+      "status": "PASS",
+      "test": "Valid config",
+      "detail": "No warnings"
+    },
+    {
+      "status": "PASS",
+      "test": "Out-of-range detected",
+      "detail": "2 warning(s)"
+    },
+    {
+      "status": "PASS",
+      "test": "Wrong type detected",
+      "detail": "Caught: [risk_limits.max_consecutive_losses] Expected <class 'int'>,"
+    },
+    {
+      "status": "PASS",
+      "test": "Empty config",
+      "detail": "No crash, no warnings"
+    },
+    {
+      "status": "PASS",
+      "test": "Unknown fields",
+      "detail": "Ignored gracefully"
+    },
+    {
+      "status": "PASS",
+      "test": "Burst 50 requests",
+      "detail": "in 0.000s (no throttle within limit)"
+    },
+    {
+      "status": "PASS",
+      "test": "51st request throttled",
+      "detail": "Waited 1.00s"
+    },
+    {
+      "status": "PASS",
+      "test": "Stats accurate",
+      "detail": "Requests=51, Waits=1"
+    },
+    {
+      "status": "PASS",
+      "test": "BTC-like data (500 candles)",
+      "detail": "Signal: SELL"
+    },
+    {
+      "status": "PASS",
+      "test": "ETH-like data (500 candles)",
+      "detail": "Signal: HOLD"
+    },
+    {
+      "status": "PASS",
+      "test": "Multi-symbol rapid signals",
+      "detail": "{'BTCUSDT': 'BUY', 'ETHUSDT': 'BUY', 'SOLUSDT': 'BUY', 'XAUUSDT': 'SELL', 'XAGUSDT': 'BUY'}"
+    },
+    {
+      "status": "PASS",
+      "test": "Signal determinism",
+      "detail": "Same input -> same output (SELL)"
+    },
+    {
+      "status": "PASS",
+      "test": "Callback under load",
+      "detail": "8 callbacks fired from 20 signals"
+    },
+    {
+      "status": "PASS",
+      "test": "24hr simulation complete",
+      "detail": "Signals=288, Opens=12, Closes=12"
+    },
+    {
+      "status": "PASS",
+      "test": "Final balance",
+      "detail": "$933.02 (-6.7%)"
+    },
+    {
+      "status": "PASS",
+      "test": "Win rate",
+      "detail": "33.3%"
+    },
+    {
+      "status": "PASS",
+      "test": "Solvency maintained",
+      "detail": "Balance > 0 after 24hr sim"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "NIFTY": {
+    "baseline": {
+      "trades": 8,
+      "win_rate": 62.5,
+      "roi": 208.97771648028484,
+      "sharpe": 2.962897736821624
+    },
+    "enhanced": {
+      "trades": 8,
+      "win_rate": 50.0,
+      "roi": -31.49115134761335,
+      "sharpe": -0.5250516140448303
+    }
+  },
+  "BANKNIFTY": {
+    "baseline": {
+      "trades": 8,
+      "win_rate": 75.0,
+      "roi": 128.55073308217018,
+      "sharpe": 0.9769771080958959
+    },
+    "enhanced": {
+      "trades": 8,
+      "win_rate": 62.5,
+      "roi": 73.35119576136837,
+      "sharpe": 1.1427197210884639
+    }
+  }
+}
