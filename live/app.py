@@ -13,6 +13,7 @@ import threading
 import time
 import os
 import sys
+import uvicorn
 from datetime import datetime
 
 # Add parent directory to path
@@ -38,6 +39,12 @@ except ImportError:
     except ImportError:
         TelegramBot = None
         TelegramConfig = None
+
+# Import bot API
+try:
+    from live.bot_api import create_api_app, set_dashboard
+except ImportError:
+    from bot_api import create_api_app, set_dashboard
 
 
 class TradingBotDashboard:
@@ -119,6 +126,7 @@ class TradingBotDashboard:
                 self.state_manager.register_signal_handlers(self._cleanup)
             
             self.running = True
+            self._start_time = time.time()
             self.thread = threading.Thread(target=self._run_loop, daemon=True)
             self.thread.start()
             
@@ -309,6 +317,9 @@ MAX_LEV = int(os.environ.get("MAX_LEVERAGE", "50"))
 
 dashboard = TradingBotDashboard(balance=BALANCE, min_lev=MIN_LEV, max_lev=MAX_LEV)
 
+# Wire up the bot API with the dashboard instance
+set_dashboard(dashboard)
+
 # Auto-start the bot
 dashboard.start_bot()
 
@@ -368,5 +379,15 @@ with gr.Blocks(title="Crypto Paper Trading Bot", theme=gr.themes.Soft()) as app:
 
 
 if __name__ == "__main__":
-    # Launch on port 7860 (Hugging Face default)
-    app.launch(server_name="0.0.0.0", server_port=7860)
+    # Create FastAPI app with bot API routes
+    fastapi_app = create_api_app()
+
+    # Mount Gradio onto FastAPI (Gradio UI at /dashboard, API at /api/*)
+    fastapi_app = gr.mount_gradio_app(fastapi_app, app, path="/dashboard")
+
+    # Run with uvicorn on port 7860 (Render default)
+    print("\n" + "=" * 60)
+    print("  API:       http://localhost:7860/api/status")
+    print("  Dashboard: http://localhost:7860/dashboard")
+    print("=" * 60 + "\n")
+    uvicorn.run(fastapi_app, host="0.0.0.0", port=7860)

@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy all Python files to live/ folder structure
 COPY --chown=user __init__.py ./live/
 COPY --chown=user app.py ./live/
+COPY --chown=user bot_api.py ./live/
 COPY --chown=user alerts.py ./live/
 COPY --chown=user dashboard.py ./live/
 COPY --chown=user data_feed.py ./live/

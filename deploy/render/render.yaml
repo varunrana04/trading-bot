@@ -14,3 +14,7 @@ services:
         value: 10
       - key: MAX_LEVERAGE
         value: 50
+      - key: BOT_API_KEY
+        generateValue: true  # Render auto-generates a secure random value
+      - key: FINSIGHT_ORIGIN
+        value: http://localhost:3000  # Update with your FinSight production URL

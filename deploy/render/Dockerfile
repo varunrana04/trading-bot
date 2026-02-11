@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy all Python files into live/ folder (matching import structure)
 COPY __init__.py ./live/
 COPY app.py ./live/
+COPY bot_api.py ./live/
 COPY signal_engine.py ./live/
 COPY data_feed.py ./live/
 COPY paper_trader.py ./live/
