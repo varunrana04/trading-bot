@@ -103,50 +103,63 @@ async def get_positions():
     # Use list() snapshot for thread safety — prevents RuntimeError if
     # the trading loop modifies positions while we iterate
     for symbol, pos in list(_dashboard.paper_trader.positions.items()):
-        # Guard against corrupted entry_price
-        if not pos.entry_price or pos.entry_price == 0:
-            continue
+        try:
+            # Guard against corrupted entry_price
+            if not pos.entry_price or pos.entry_price == 0:
+                continue
 
-        # Get current price from data feed
-        current_price = pos.entry_price
-        if _dashboard.data_feed:
-            latest = _dashboard.data_feed.get_latest(symbol, "15m")
-            if latest:
-                current_price = latest['close']
+            # Get current price from data feed
+            current_price = pos.entry_price
+            if _dashboard.data_feed:
+                latest = _dashboard.data_feed.get_latest(symbol, "15m")
+                if latest:
+                    current_price = latest['close']
 
-        # Calculate unrealized P&L
-        if pos.direction == "BUY":
-            pnl_pct = (current_price - pos.entry_price) / pos.entry_price * 100
-        else:
-            pnl_pct = (pos.entry_price - current_price) / pos.entry_price * 100
+            # Calculate unrealized P&L
+            if pos.direction == "BUY":
+                pnl_pct = (current_price - pos.entry_price) / pos.entry_price * 100
+            else:
+                pnl_pct = (pos.entry_price - current_price) / pos.entry_price * 100
 
-        pnl_usd = pos.margin * pos.leverage * (pnl_pct / 100)
+            pnl_usd = pos.margin * pos.leverage * (pnl_pct / 100)
 
-        # TP/SL progress (how close to target)
-        if pos.direction == "BUY":
-            tp_progress = (current_price - pos.entry_price) / (pos.tp_price - pos.entry_price) * 100 if pos.tp_price != pos.entry_price else 0
-            sl_progress = (pos.entry_price - current_price) / (pos.entry_price - pos.sl_price) * 100 if pos.sl_price != pos.entry_price else 0
-        else:
-            tp_progress = (pos.entry_price - current_price) / (pos.entry_price - pos.tp_price) * 100 if pos.tp_price != pos.entry_price else 0
-            sl_progress = (current_price - pos.entry_price) / (pos.sl_price - pos.entry_price) * 100 if pos.sl_price != pos.entry_price else 0
+            # TP/SL progress (how close to target) — guard against div-by-zero
+            tp_progress = 0
+            sl_progress = 0
+            try:
+                if pos.direction == "BUY":
+                    if pos.tp_price != pos.entry_price:
+                        tp_progress = (current_price - pos.entry_price) / (pos.tp_price - pos.entry_price) * 100
+                    if pos.sl_price != pos.entry_price:
+                        sl_progress = (pos.entry_price - current_price) / (pos.entry_price - pos.sl_price) * 100
+                else:
+                    if pos.tp_price != pos.entry_price:
+                        tp_progress = (pos.entry_price - current_price) / (pos.entry_price - pos.tp_price) * 100
+                    if pos.sl_price != pos.entry_price:
+                        sl_progress = (current_price - pos.entry_price) / (pos.sl_price - pos.entry_price) * 100
+            except (ZeroDivisionError, TypeError):
+                pass
 
-        positions.append({
-            "symbol": symbol,
-            "direction": pos.direction,
-            "entry_price": round(pos.entry_price, 6),
-            "current_price": round(current_price, 6),
-            "entry_time": pos.entry_time,
-            "leverage": pos.leverage,
-            "margin": round(pos.margin, 2),
-            "tp_price": round(pos.tp_price, 6),
-            "sl_price": round(pos.sl_price, 6),
-            "pnl_pct": round(pnl_pct, 3),
-            "pnl_usd": round(pnl_usd, 2),
-            "hold_candles": pos.hold_candles,
-            "max_pnl_pct": round(pos.max_pnl_pct, 3),
-            "tp_progress": round(max(0, min(tp_progress, 100)), 1),
-            "sl_progress": round(max(0, min(sl_progress, 100)), 1),
-        })
+            positions.append({
+                "symbol": symbol,
+                "direction": pos.direction,
+                "entry_price": round(pos.entry_price, 6),
+                "current_price": round(current_price, 6),
+                "entry_time": pos.entry_time,
+                "leverage": pos.leverage,
+                "margin": round(pos.margin, 2),
+                "tp_price": round(pos.tp_price, 6),
+                "sl_price": round(pos.sl_price, 6),
+                "pnl_pct": round(pnl_pct, 3),
+                "pnl_usd": round(pnl_usd, 2),
+                "hold_candles": getattr(pos, 'hold_candles', 0),
+                "max_pnl_pct": round(getattr(pos, 'max_pnl_pct', 0), 3),
+                "tp_progress": round(max(0, min(tp_progress, 100)), 1),
+                "sl_progress": round(max(0, min(sl_progress, 100)), 1),
+            })
+        except Exception as e:
+            logger.warning(f"Failed to serialize position {symbol}: {e}")
+            positions.append({"symbol": symbol, "error": str(e)})
 
     return {"positions": positions, "count": len(positions)}
 
@@ -249,62 +262,72 @@ async def export_all():
     if not _dashboard:
         return {"error": "Dashboard not initialized"}
 
-    _record_equity()
-    pt = _dashboard.paper_trader
+    try:
+        _record_equity()
+        pt = _dashboard.paper_trader
 
-    # Serialize all trades
-    all_trades = []
-    if pt:
-        for t in pt.trades:
-            all_trades.append({
-                "symbol": t.symbol,
-                "direction": t.direction,
-                "entry_price": round(t.entry_price, 6),
-                "exit_price": round(t.exit_price, 6),
-                "entry_time": t.entry_time,
-                "exit_time": t.exit_time,
-                "leverage": t.leverage,
-                "margin": round(t.margin, 2),
-                "pnl": round(t.pnl, 2),
-                "pnl_pct": round(t.pnl_pct, 3),
-                "exit_reason": t.exit_reason,
-                "conviction": round(t.conviction, 3) if t.conviction else 0
-            })
+        # Serialize all trades
+        all_trades = []
+        if pt:
+            for t in pt.trades:
+                try:
+                    all_trades.append({
+                        "symbol": t.symbol,
+                        "direction": t.direction,
+                        "entry_price": round(t.entry_price, 6),
+                        "exit_price": round(t.exit_price, 6),
+                        "entry_time": t.entry_time,
+                        "exit_time": t.exit_time,
+                        "leverage": t.leverage,
+                        "margin": round(t.margin, 2),
+                        "pnl": round(t.pnl, 2),
+                        "pnl_pct": round(t.pnl_pct, 3),
+                        "exit_reason": t.exit_reason,
+                        "conviction": round(getattr(t, 'conviction', 0) or 0, 3)
+                    })
+                except Exception as e:
+                    all_trades.append({"error": str(e)})
 
-    # Serialize open positions
-    open_positions = []
-    if pt:
-        for sym, pos in list(pt.positions.items()):
-            open_positions.append({
-                "symbol": sym,
-                "direction": pos.direction,
-                "entry_price": round(pos.entry_price, 6),
-                "entry_time": pos.entry_time,
-                "leverage": pos.leverage,
-                "margin": round(pos.margin, 2),
-                "tp_price": round(pos.tp_price, 6),
-                "sl_price": round(pos.sl_price, 6),
-                "hold_candles": pos.hold_candles,
-                "max_pnl_pct": round(pos.max_pnl_pct, 3),
-            })
+        # Serialize open positions
+        open_positions = []
+        if pt:
+            for sym, pos in list(pt.positions.items()):
+                try:
+                    open_positions.append({
+                        "symbol": sym,
+                        "direction": pos.direction,
+                        "entry_price": round(pos.entry_price, 6),
+                        "entry_time": pos.entry_time,
+                        "leverage": pos.leverage,
+                        "margin": round(pos.margin, 2),
+                        "tp_price": round(pos.tp_price, 6),
+                        "sl_price": round(pos.sl_price, 6),
+                        "hold_candles": getattr(pos, 'hold_candles', 0),
+                        "max_pnl_pct": round(getattr(pos, 'max_pnl_pct', 0), 3),
+                    })
+                except Exception as e:
+                    open_positions.append({"symbol": sym, "error": str(e)})
 
-    return {
-        "exported_at": datetime.utcnow().isoformat(),
-        "status": "running" if _dashboard.running else "stopped",
-        "uptime_seconds": round(time.time() - _dashboard._start_time, 0) if hasattr(_dashboard, '_start_time') else None,
-        "balance": round(pt.balance, 2) if pt else 0,
-        "starting_balance": _dashboard.balance,
-        "stats": pt.get_stats() if pt else {},
-        "circuit_breaker": {
-            "active": pt._circuit_open if pt else False,
-            "consecutive_losses": pt._consecutive_losses if pt else 0,
-            "daily_pnl": round(pt._daily_pnl, 2) if pt else 0,
-        },
-        "trades": all_trades,
-        "total_trades": len(all_trades),
-        "open_positions": open_positions,
-        "equity_curve": list(_equity_curve),
-    }
+        return {
+            "exported_at": datetime.utcnow().isoformat(),
+            "status": "running" if _dashboard.running else "stopped",
+            "uptime_seconds": round(time.time() - _dashboard._start_time, 0) if hasattr(_dashboard, '_start_time') else None,
+            "balance": round(pt.balance, 2) if pt else 0,
+            "starting_balance": _dashboard.balance,
+            "stats": pt.get_stats() if pt else {},
+            "circuit_breaker": {
+                "active": pt._circuit_open if pt else False,
+                "consecutive_losses": pt._consecutive_losses if pt else 0,
+                "daily_pnl": round(pt._daily_pnl, 2) if pt else 0,
+            },
+            "trades": all_trades,
+            "total_trades": len(all_trades),
+            "open_positions": open_positions,
+            "equity_curve": list(_equity_curve),
+        }
+    except Exception as e:
+        logger.error(f"Export failed: {e}")
+        return {"error": str(e), "traceback": traceback.format_exc()}
 
 
 @router.get("/logs")
