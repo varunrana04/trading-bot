@@ -25,10 +25,7 @@ COPY core/state_manager.py ./core/
 COPY core/telegram_bot.py ./core/
 COPY core/correlation_guard.py ./core/
 
-# Copy strategy to backtests folder
-COPY balanced_strategy.py ./backtests/
-
-# Create results directory
+# Create directories for runtime
 RUN mkdir -p backtests results/paper_trades
 
 ENV PYTHONUNBUFFERED=1
