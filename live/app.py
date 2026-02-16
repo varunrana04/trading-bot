@@ -14,6 +14,8 @@ import time
 import os
 import sys
 import uvicorn
+import traceback
+import requests
 from datetime import datetime
 
 # Add parent directory to path
@@ -147,24 +149,35 @@ class TradingBotDashboard:
             return f"❌ Error: {e}"
     
     def _run_loop(self):
-        """Background trading loop"""
+        """Background trading loop — resilient to individual errors."""
         poll_interval = 60  # seconds
+        consecutive_errors = 0
+        max_consecutive_errors = 10
+        cycle = 0
         
         while self.running:
+            cycle += 1
+            cycle_start = time.time()
             try:
                 # Check for shutdown request
                 if self.state_manager and self.state_manager.shutdown_requested:
-                    self.log("🛑 Shutdown signal received, stopping...")
+                    self.log("STOP Shutdown signal received, stopping...")
                     self.running = False
                     break
                 
-                # Fetch latest data
-                self.data_feed.fetch_latest()
-                self.last_update = datetime.now()
+                # Fetch latest data (with timeout protection)
+                try:
+                    self.data_feed.fetch_latest()
+                    self.last_update = datetime.now()
+                except Exception as e:
+                    self.log(f"WARN Data feed error: {e} — using stale data")
                 
-                # Process each symbol
+                # Process each symbol independently
                 for symbol in self.symbols:
-                    self._process_symbol(symbol)
+                    try:
+                        self._process_symbol(symbol)
+                    except Exception as e:
+                        self.log(f"WARN {symbol} processing error: {e}")
                 
                 # Persist state for crash recovery
                 if self.state_manager and self.paper_trader:
@@ -173,12 +186,29 @@ class TradingBotDashboard:
                         balance=self.paper_trader.balance
                     )
                 
+                # Reset error counter on successful cycle
+                consecutive_errors = 0
+                
+                # Log cycle timing periodically
+                elapsed = time.time() - cycle_start
+                if cycle % 15 == 0:  # Every 15 minutes
+                    stats = self.paper_trader.get_stats() if self.paper_trader else {}
+                    self.log(f"CYCLE #{cycle} | {elapsed:.1f}s | Balance: ${stats.get('balance', 0):,.2f} | Trades: {stats.get('total_trades', 0)}")
+                
                 # Wait for next poll
                 time.sleep(poll_interval)
                 
             except Exception as e:
-                self.log(f"⚠️ Error in loop: {e}")
-                time.sleep(10)
+                consecutive_errors += 1
+                self.log(f"ERROR in loop (#{consecutive_errors}): {e}")
+                self.log(traceback.format_exc())
+                
+                if consecutive_errors >= max_consecutive_errors:
+                    self.log(f"FATAL {max_consecutive_errors} consecutive errors — stopping bot")
+                    self.running = False
+                    break
+                
+                time.sleep(min(10 * consecutive_errors, 120))  # Backoff up to 2min
     
     def _process_symbol(self, symbol: str):
         """Process trading logic for a symbol"""
@@ -199,8 +229,8 @@ class TradingBotDashboard:
         if self.paper_trader.has_position(symbol):
             exit_reason = self.paper_trader.update_position(symbol, current_price)
             if exit_reason:
-                pos = self.paper_trader.get_position(symbol)
-                self.log(f"🔴 CLOSED {symbol} - Reason: {exit_reason}")
+                # Note: position is already deleted by close_position() inside update_position()
+                self.log(f"CLOSED {symbol} - Reason: {exit_reason}")
                 self.trades_log.append({
                     'time': datetime.now().strftime("%Y-%m-%d %H:%M"),
                     'symbol': symbol,
@@ -220,7 +250,7 @@ class TradingBotDashboard:
                 signal['atr_pct'] = 1.0
                 self.paper_trader.open_position(signal)
                 
-                emoji = "🟢 LONG" if sig_type == 'BUY' else "🔴 SHORT"
+                emoji = "LONG" if sig_type == 'BUY' else "SHORT"
                 self.log(f"{emoji} {symbol} @ ${current_price:,.2f} (score: {signal.get('score', 0)}/5)")
                 
                 self.signals_log.append({
@@ -234,9 +264,9 @@ class TradingBotDashboard:
                 # Log why we're not trading (periodically, not every tick)
                 reason = signal.get('reason', 'Conditions not met')
                 if direction != 'NEUTRAL':
-                    self.log(f"📊 {symbol}: {direction} trend, waiting for entry ({reason})")
+                    self.log(f"{symbol}: {direction} trend, waiting for entry ({reason})")
                 else:
-                    self.log(f"⏸️ {symbol}: No clear trend @ ${current_price:,.2f}")
+                    self.log(f"{symbol}: No clear trend @ ${current_price:,.2f}")
     
     def _cleanup(self):
         """Cleanup on shutdown — save final state."""
@@ -289,7 +319,7 @@ class TradingBotDashboard:
                     latest = self.data_feed.get_latest(symbol, "15m") if self.data_feed else None
                     current_price = latest['close'] if latest else pos.entry_price
                     pnl_pct = ((current_price - pos.entry_price) / pos.entry_price * 100)
-                    if pos.direction == "SHORT":
+                    if pos.direction == "SELL":  # Fix: was checking "SHORT" but Position uses "SELL"
                         pnl_pct = -pnl_pct
                     positions.append(f"• **{symbol}** {pos.direction} @ ${pos.entry_price:,.2f} → ${current_price:,.2f} ({pnl_pct:+.2f}%)")
         
@@ -385,9 +415,26 @@ if __name__ == "__main__":
     # Mount Gradio onto FastAPI (Gradio UI at /dashboard, API at /api/*)
     fastapi_app = gr.mount_gradio_app(fastapi_app, app, path="/dashboard")
 
+    # Keep-alive thread — prevents Render free tier from spinning down
+    # by pinging /api/health every 5 minutes
+    def _keep_alive():
+        port = int(os.environ.get("PORT", 7860))
+        url = f"http://localhost:{port}/api/health"
+        while True:
+            time.sleep(300)  # 5 minutes
+            try:
+                requests.get(url, timeout=5)
+            except Exception:
+                pass
+
+    keep_alive_thread = threading.Thread(target=_keep_alive, daemon=True)
+    keep_alive_thread.start()
+
     # Run with uvicorn on port 7860 (Render default)
+    port = int(os.environ.get("PORT", 7860))
     print("\n" + "=" * 60)
-    print("  API:       http://localhost:7860/api/status")
-    print("  Dashboard: http://localhost:7860/dashboard")
+    print(f"  API:       http://localhost:{port}/api/status")
+    print(f"  Export:    http://localhost:{port}/api/export")
+    print(f"  Dashboard: http://localhost:{port}/dashboard")
     print("=" * 60 + "\n")
-    uvicorn.run(fastapi_app, host="0.0.0.0", port=7860)
+    uvicorn.run(fastapi_app, host="0.0.0.0", port=port)

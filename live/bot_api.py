@@ -16,6 +16,7 @@ from typing import Optional, List
 from collections import deque
 import logging
 import time
+import traceback
 import os
 
 logger = logging.getLogger("BotAPI")
@@ -99,7 +100,13 @@ async def get_positions():
     _record_equity()
     positions = []
 
-    for symbol, pos in _dashboard.paper_trader.positions.items():
+    # Use list() snapshot for thread safety — prevents RuntimeError if
+    # the trading loop modifies positions while we iterate
+    for symbol, pos in list(_dashboard.paper_trader.positions.items()):
+        # Guard against corrupted entry_price
+        if not pos.entry_price or pos.entry_price == 0:
+            continue
+
         # Get current price from data feed
         current_price = pos.entry_price
         if _dashboard.data_feed:
@@ -146,6 +153,7 @@ async def get_positions():
 
 @router.get("/trades")
 async def get_trades(symbol: Optional[str] = None, limit: int = 50):
+    limit = min(max(limit, 1), 500)  # Clamp to prevent abuse
     """Recent trade history."""
     if not _dashboard or not _dashboard.paper_trader:
         return {"trades": [], "count": 0}
@@ -232,6 +240,82 @@ async def get_equity():
     """Equity curve — balance over time."""
     _record_equity()
     return {"curve": list(_equity_curve), "points": len(_equity_curve)}
+
+
+@router.get("/export")
+async def export_all():
+    """Full data export — trade history, stats, equity, positions, logs.
+    Use this to pull all data from the running Render instance."""
+    if not _dashboard:
+        return {"error": "Dashboard not initialized"}
+
+    _record_equity()
+    pt = _dashboard.paper_trader
+
+    # Serialize all trades
+    all_trades = []
+    if pt:
+        for t in pt.trades:
+            all_trades.append({
+                "symbol": t.symbol,
+                "direction": t.direction,
+                "entry_price": round(t.entry_price, 6),
+                "exit_price": round(t.exit_price, 6),
+                "entry_time": t.entry_time,
+                "exit_time": t.exit_time,
+                "leverage": t.leverage,
+                "margin": round(t.margin, 2),
+                "pnl": round(t.pnl, 2),
+                "pnl_pct": round(t.pnl_pct, 3),
+                "exit_reason": t.exit_reason,
+                "conviction": round(t.conviction, 3) if t.conviction else 0
+            })
+
+    # Serialize open positions
+    open_positions = []
+    if pt:
+        for sym, pos in list(pt.positions.items()):
+            open_positions.append({
+                "symbol": sym,
+                "direction": pos.direction,
+                "entry_price": round(pos.entry_price, 6),
+                "entry_time": pos.entry_time,
+                "leverage": pos.leverage,
+                "margin": round(pos.margin, 2),
+                "tp_price": round(pos.tp_price, 6),
+                "sl_price": round(pos.sl_price, 6),
+                "hold_candles": pos.hold_candles,
+                "max_pnl_pct": round(pos.max_pnl_pct, 3),
+            })
+
+    return {
+        "exported_at": datetime.utcnow().isoformat(),
+        "status": "running" if _dashboard.running else "stopped",
+        "uptime_seconds": round(time.time() - _dashboard._start_time, 0) if hasattr(_dashboard, '_start_time') else None,
+        "balance": round(pt.balance, 2) if pt else 0,
+        "starting_balance": _dashboard.balance,
+        "stats": pt.get_stats() if pt else {},
+        "circuit_breaker": {
+            "active": pt._circuit_open if pt else False,
+            "consecutive_losses": pt._consecutive_losses if pt else 0,
+            "daily_pnl": round(pt._daily_pnl, 2) if pt else 0,
+        },
+        "trades": all_trades,
+        "total_trades": len(all_trades),
+        "open_positions": open_positions,
+        "equity_curve": list(_equity_curve),
+    }
+
+
+@router.get("/logs")
+async def get_logs(limit: int = 100):
+    """Recent activity logs."""
+    limit = min(max(limit, 1), 500)
+    if not _dashboard:
+        return {"logs": [], "count": 0}
+
+    logs = getattr(_dashboard, 'logs', [])[-limit:]
+    return {"logs": logs, "count": len(logs)}
 
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
