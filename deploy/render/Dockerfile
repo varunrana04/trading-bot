@@ -19,6 +19,15 @@ COPY alerts.py ./live/
 COPY run_paper.py ./live/
 COPY diagnose_signals.py ./live/
 
+# Copy core dependencies (imported by paper_trader.py and app.py)
+COPY core/__init__.py ./core/
+COPY core/state_manager.py ./core/
+COPY core/telegram_bot.py ./core/
+COPY core/correlation_guard.py ./core/
+
+# Copy strategy to backtests folder
+COPY balanced_strategy.py ./backtests/
+
 # Create results directory
 RUN mkdir -p results/paper_trades
 

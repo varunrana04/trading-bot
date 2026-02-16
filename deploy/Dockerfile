@@ -21,6 +21,12 @@ COPY --chown=user paper_trader.py ./live/
 COPY --chown=user run_paper.py ./live/
 COPY --chown=user signal_engine.py ./live/
 
+# Copy core dependencies (imported by paper_trader.py and app.py)
+COPY --chown=user core/__init__.py ./core/
+COPY --chown=user core/state_manager.py ./core/
+COPY --chown=user core/telegram_bot.py ./core/
+COPY --chown=user core/correlation_guard.py ./core/
+
 # Copy strategy to backtests folder
 COPY --chown=user balanced_strategy.py ./backtests/
 
