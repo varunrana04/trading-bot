@@ -1,6 +1,6 @@
-"""Core utilities for institutional trader"""
+"""Core utilities — minimal init for Render deployment.
+Only imports modules actually used by the live trading bot.
+"""
 
-from . import costs
-from . import validation
-
-__all__ = ['costs', 'validation', 'optimizer', 'risk_manager', 'position_manager']
+# Don't import costs/validation/optimizer — not needed for paper trading
+# and those subpackages are not deployed to Render.

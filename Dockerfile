@@ -19,8 +19,8 @@ COPY live/alerts.py ./live/
 COPY live/run_paper.py ./live/
 COPY live/diagnose_signals.py ./live/
 
-# Copy core dependencies
-COPY core/__init__.py ./core/
+# Copy core dependencies (use deploy-safe __init__.py that doesn't import costs/validation)
+COPY deploy/render/core/__init__.py ./core/
 COPY core/state_manager.py ./core/
 COPY core/telegram_bot.py ./core/
 COPY core/correlation_guard.py ./core/
