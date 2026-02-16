@@ -26,6 +26,15 @@ class IndicatorCalculator:
         """Add 1hr trend indicators"""
         df = df.copy()
         
+        # Sanitize inputs: replace Inf with NaN, then forward-fill
+        numeric_cols = ['open', 'high', 'low', 'close', 'volume']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = df[col].replace([np.inf, -np.inf], np.nan).ffill().bfill()
+                # Clamp negative prices to small positive value
+                if col != 'volume':
+                    df[col] = df[col].clip(lower=1e-8)
+        
         # EMAs
         df['EMA_8'] = df['close'].ewm(span=8, adjust=False).mean()
         df['EMA_21'] = df['close'].ewm(span=21, adjust=False).mean()
@@ -74,6 +83,14 @@ class IndicatorCalculator:
     def add_15m_indicators(df: pd.DataFrame) -> pd.DataFrame:
         """Add 15m entry indicators"""
         df = df.copy()
+        
+        # Sanitize inputs: replace Inf with NaN, then forward-fill
+        numeric_cols = ['open', 'high', 'low', 'close', 'volume']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = df[col].replace([np.inf, -np.inf], np.nan).ffill().bfill()
+                if col != 'volume':
+                    df[col] = df[col].clip(lower=1e-8)
         
         # Fast EMAs
         df['EMA_5'] = df['close'].ewm(span=5, adjust=False).mean()
@@ -298,6 +315,30 @@ class SignalEngine:
     def get_last_signal(self, symbol: str) -> Optional[Dict]:
         """Get the last signal for a symbol"""
         return self.last_signals.get(symbol)
+    
+    def generate_signal(self, symbol: str, df: pd.DataFrame = None, df_1h: pd.DataFrame = None, df_15m: pd.DataFrame = None) -> Optional[Dict]:
+        """
+        Generate signal - compatibility wrapper for process().
+        
+        Can be called with either:
+        - df: Single DataFrame (will be used as 15m data, 1h resampled)
+        - df_1h, df_15m: Separate DataFrames for each timeframe
+        """
+        if df is not None:
+            # Single DataFrame provided - use as 15m, resample for 1h
+            df_15m = df
+            if 'timestamp' in df.columns:
+                df_1h = df.set_index('timestamp').resample('1h').agg({
+                    'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last', 'volume': 'sum'
+                }).dropna().reset_index()
+            else:
+                # Simple approximation: take every 4th row
+                df_1h = df.iloc[::4].reset_index(drop=True)
+        
+        if df_1h is None or df_15m is None:
+            return None
+        
+        return self.process(symbol, df_1h, df_15m)
 
 
 if __name__ == "__main__":

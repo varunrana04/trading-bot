@@ -11,6 +11,7 @@ Tracks positions, calculates P&L, and logs all trades.
 import json
 import logging
 import os
+import time
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
 from dataclasses import dataclass, asdict
@@ -18,6 +19,12 @@ import numpy as np
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("PaperTrader")
+
+# Import correlation guard (optional)
+try:
+    from core.correlation_guard import CorrelationGuard
+except ImportError:
+    CorrelationGuard = None
 
 
 @dataclass
@@ -76,6 +83,18 @@ class PaperTrader:
         # Simulated slippage
         self.slippage_pct = 0.0005  # 0.05%
         
+        # Circuit breaker
+        self._consecutive_losses = 0
+        self._daily_pnl = 0.0
+        self._circuit_open = False
+        self._circuit_open_time = 0.0
+        self._circuit_cooldown = 1800  # 30 minutes
+        self._max_consecutive_losses = 3
+        self._max_daily_loss_pct = 5.0
+        
+        # Correlation guard
+        self._corr_guard = CorrelationGuard() if CorrelationGuard else None
+        
         # Trade log file
         self.log_dir = "results/paper_trades"
         os.makedirs(self.log_dir, exist_ok=True)
@@ -111,6 +130,24 @@ class PaperTrader:
         direction = signal['signal']
         if direction not in ['BUY', 'SELL']:
             return False
+        
+        # Circuit breaker check
+        if self._circuit_open:
+            elapsed = time.time() - self._circuit_open_time
+            if elapsed < self._circuit_cooldown:
+                remaining = int(self._circuit_cooldown - elapsed)
+                logger.warning(f"Circuit breaker ACTIVE: {remaining}s remaining, skipping {symbol}")
+                return False
+            else:
+                logger.info("Circuit breaker cooldown expired, resuming trading")
+                self._circuit_open = False
+        
+        # Correlation guard check
+        if self._corr_guard:
+            allowed, reason = self._corr_guard.can_open(symbol, direction, self.positions)
+            if not allowed:
+                logger.warning(f"Correlation guard blocked: {reason}")
+                return False
         
         price = signal['price']
         conviction = signal.get('conviction', 0.5)
@@ -247,7 +284,7 @@ class PaperTrader:
             exit_price=actual_exit,
             entry_time=position.entry_time,
             exit_time=datetime.now().isoformat(),
-            leverage=position.leverage,
+            leverage=int(position.leverage),  # Convert numpy int64 to Python int for JSON
             margin=position.margin,
             pnl=round(net_pnl, 2),
             pnl_pct=round(pnl_pct * 100, 2),
@@ -269,6 +306,22 @@ class PaperTrader:
             "reason": reason
         })
         
+        # Update circuit breaker state
+        self._daily_pnl += net_pnl
+        if net_pnl < 0:
+            self._consecutive_losses += 1
+        else:
+            self._consecutive_losses = 0
+        
+        daily_loss_pct = abs(self._daily_pnl / self.starting_balance * 100) if self._daily_pnl < 0 else 0
+        
+        if (self._consecutive_losses >= self._max_consecutive_losses or 
+            daily_loss_pct >= self._max_daily_loss_pct):
+            self._circuit_open = True
+            self._circuit_open_time = time.time()
+            trigger = f"{self._consecutive_losses} consecutive losses" if self._consecutive_losses >= self._max_consecutive_losses else f"{daily_loss_pct:.1f}% daily loss"
+            logger.warning(f"CIRCUIT BREAKER ACTIVATED: {trigger}. Trading paused for {self._circuit_cooldown//60} minutes.")
+        
         # Save trade log
         self._save_trade(trade)
     
@@ -281,8 +334,8 @@ class PaperTrader:
             try:
                 with open(log_file, 'r') as f:
                     trades_data = json.load(f)
-            except:
-                pass
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Could not read existing trade log {log_file}: {e}")
         
         trades_data.append(asdict(trade))
         

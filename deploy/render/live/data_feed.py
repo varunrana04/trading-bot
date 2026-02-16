@@ -22,107 +22,15 @@ try:
 except ImportError:
     WEBSOCKETS_AVAILABLE = False
 
-import requests
-import os
-
-# Get API keys from environment (optional - not needed for public data)
-BINANCE_API_KEY = os.environ.get("BINANCE_API_KEY", "")
-BINANCE_API_SECRET = os.environ.get("BINANCE_API_SECRET", "")
-
-# Try python-binance, but we have a fallback
 try:
     from binance.client import Client
     BINANCE_AVAILABLE = True
-except ImportError as e:
+except ImportError:
     BINANCE_AVAILABLE = False
     Client = None
-    print(f"INFO: python-binance not available, using REST API fallback: {e}")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("DataFeed")
-
-# REST API fallback for fetching klines
-BINANCE_FUTURES_API = "https://fapi.binance.com"
-CRYPTOCOMPARE_API = "https://min-api.cryptocompare.com"
-
-def fetch_klines_rest(symbol: str, interval: str, limit: int = 200) -> list:
-    """Fetch klines using direct REST API (fallback method)"""
-    url = f"{BINANCE_FUTURES_API}/fapi/v1/klines"
-    params = {
-        "symbol": symbol,
-        "interval": interval,
-        "limit": limit
-    }
-    try:
-        response = requests.get(url, params=params, timeout=30)
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 451:
-            # Geo-restricted, try CryptoCompare
-            logger.warning(f"Binance geo-restricted (451), trying CryptoCompare...")
-            return fetch_klines_cryptocompare(symbol, interval, limit)
-        else:
-            logger.error(f"REST API error {response.status_code}: {response.text}")
-            return []
-    except Exception as e:
-        logger.error(f"REST API request failed: {e}")
-        return []
-
-
-def fetch_klines_cryptocompare(symbol: str, interval: str, limit: int = 200) -> list:
-    """Fetch klines from CryptoCompare (works globally, no geo-restrictions)"""
-    # Convert symbol format: BTCUSDT -> BTC, ETHUSDT -> ETH
-    base_symbol = symbol.replace("USDT", "")
-    
-    # Map interval to CryptoCompare format
-    interval_map = {
-        "15m": ("histominute", 15),  # 15 min candles
-        "1h": ("histohour", 1),      # 1 hour candles
-        "4h": ("histohour", 4),      # 4 hour candles
-        "1d": ("histoday", 1),       # 1 day candles
-    }
-    
-    if interval not in interval_map:
-        logger.error(f"Unsupported interval for CryptoCompare: {interval}")
-        return []
-    
-    endpoint, aggregate = interval_map[interval]
-    url = f"{CRYPTOCOMPARE_API}/data/v2/{endpoint}"
-    
-    params = {
-        "fsym": base_symbol,
-        "tsym": "USDT",
-        "limit": limit,
-        "aggregate": aggregate
-    }
-    
-    try:
-        response = requests.get(url, params=params, timeout=30)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("Response") == "Success":
-                # Convert to Binance kline format
-                klines = []
-                for candle in data.get("Data", {}).get("Data", []):
-                    klines.append([
-                        candle["time"] * 1000,  # timestamp in ms
-                        str(candle["open"]),
-                        str(candle["high"]),
-                        str(candle["low"]),
-                        str(candle["close"]),
-                        str(candle.get("volumefrom", 0)),  # volume
-                    ])
-                logger.info(f"✅ CryptoCompare: {base_symbol} {interval} - {len(klines)} candles")
-                return klines
-            else:
-                logger.error(f"CryptoCompare error: {data.get('Message', 'Unknown error')}")
-                return []
-        else:
-            logger.error(f"CryptoCompare API error {response.status_code}")
-            return []
-    except Exception as e:
-        logger.error(f"CryptoCompare request failed: {e}")
-        return []
 
 
 class CandleBuffer:
@@ -188,8 +96,8 @@ class BinanceDataFeed:
         if BINANCE_AVAILABLE:
             try:
                 self.client = Client("", "", {"timeout": 30})
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"Could not initialize Binance REST client: {e}")
     
     def add_callback(self, callback: Callable):
         """Add callback for new candle events"""
@@ -375,7 +283,7 @@ class BinanceDataFeed:
 
 
 class SimulatedDataFeed:
-    """Simulated data feed for testing without WebSocket - with REST API fallback"""
+    """Simulated data feed for testing without WebSocket"""
     
     def __init__(self, symbols: List[str], timeframes: List[str] = ["15m", "1h"]):
         self.symbols = [s.upper() for s in symbols]
@@ -384,21 +292,12 @@ class SimulatedDataFeed:
         self.callbacks: List[Callable] = []
         self.running = False
         
-        # Try python-binance first, fallback to REST API
         self.client = None
-        self.use_rest_fallback = False
-        
-        logger.info(f"SimulatedDataFeed init: BINANCE_AVAILABLE={BINANCE_AVAILABLE}")
         if BINANCE_AVAILABLE:
             try:
-                self.client = Client(BINANCE_API_KEY, BINANCE_API_SECRET, {"timeout": 30})
-                logger.info("✅ Binance client created successfully")
+                self.client = Client("", "", {"timeout": 30})
             except Exception as e:
-                logger.warning(f"⚠️ python-binance client failed: {e}, using REST fallback")
-                self.use_rest_fallback = True
-        else:
-            logger.info("ℹ️ python-binance not available, using REST API fallback")
-            self.use_rest_fallback = True
+                logger.warning(f"Could not initialize Binance REST client: {e}")
     
     def add_callback(self, callback: Callable):
         self.callbacks.append(callback)
@@ -412,41 +311,35 @@ class SimulatedDataFeed:
     
     def fetch_latest(self):
         """Fetch latest candles from REST API"""
-        logger.info(f"Fetching data for {len(self.symbols)} symbols (REST fallback: {self.use_rest_fallback})...")
+        if not self.client:
+            return
         
         for symbol in self.symbols:
             for tf in self.timeframes:
                 try:
-                    # Use REST API fallback or python-binance client
-                    if self.use_rest_fallback or not self.client:
-                        klines = fetch_klines_rest(symbol, tf, 200)
-                    else:
-                        klines = self.client.futures_klines(
-                            symbol=symbol,
-                            interval=tf,
-                            limit=200
-                        )
+                    klines = self.client.futures_klines(
+                        symbol=symbol,
+                        interval=tf,
+                        limit=200
+                    )
                     
+                    for k in klines:
+                        candle = {
+                            'timestamp': k[0],
+                            'open': float(k[1]),
+                            'high': float(k[2]),
+                            'low': float(k[3]),
+                            'close': float(k[4]),
+                            'volume': float(k[5])
+                        }
+                        self.buffer.add_candle(symbol, tf, candle)
+                    
+                    # Notify for latest candle
                     if klines:
-                        for k in klines:
-                            candle = {
-                                'timestamp': k[0],
-                                'open': float(k[1]),
-                                'high': float(k[2]),
-                                'low': float(k[3]),
-                                'close': float(k[4]),
-                                'volume': float(k[5])
-                            }
-                            self.buffer.add_candle(symbol, tf, candle)
-                        
-                        # Notify for latest candle
                         self._notify_callbacks(symbol, tf, candle, True)
-                        logger.info(f"✅ {symbol} {tf}: {len(klines)} candles loaded")
-                    else:
-                        logger.warning(f"⚠️ {symbol} {tf}: No data returned")
                         
                 except Exception as e:
-                    logger.error(f"❌ Fetch error for {symbol} {tf}: {e}")
+                    logger.error(f"Fetch error: {e}")
     
     def start(self, interval_seconds: int = 60):
         """Start polling (blocking)"""
