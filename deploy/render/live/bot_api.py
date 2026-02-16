@@ -391,11 +391,7 @@ def create_api_app() -> FastAPI:
 
     @api_app.get("/")
     async def root():
-        return {
-            "name": "Trading Bot API",
-            "version": "1.2.0",
-            "auth": "required" if BOT_API_KEY else "disabled",
-            "endpoints": ["/api/health", "/api/status", "/api/positions", "/api/trades", "/api/signals", "/api/stats", "/api/equity"]
-        }
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/dashboard")
 
     return api_app

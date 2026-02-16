@@ -11,6 +11,7 @@ Connects to Binance WebSocket for 15m and 1hr candles.
 import asyncio
 import json
 import logging
+import time
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
 import pandas as pd
@@ -111,7 +112,7 @@ class BinanceDataFeed:
             except Exception as e:
                 logger.error(f"Callback error: {e}")
     
-    def fetch_initial_data(self, days: int = 7):
+    def fetch_initial_data(self, days: int = 3):
         """Fetch historical data to initialize buffers"""
         if not self.client:
             logger.warning("No REST client - starting with empty buffers")
@@ -152,6 +153,8 @@ class BinanceDataFeed:
                     
                 except Exception as e:
                     logger.error(f"Error fetching {symbol_upper} {tf}: {e}")
+                
+                time.sleep(0.5)  # Rate-limit protection between requests
     
     def _parse_kline_message(self, msg: Dict) -> Optional[Dict]:
         """Parse WebSocket kline message"""
@@ -310,7 +313,7 @@ class SimulatedDataFeed:
                 logger.error(f"Callback error: {e}")
     
     def fetch_latest(self):
-        """Fetch latest candles from REST API"""
+        """Fetch latest candles from REST API with rate-limit protection"""
         if not self.client:
             return
         
@@ -340,6 +343,8 @@ class SimulatedDataFeed:
                         
                 except Exception as e:
                     logger.error(f"Fetch error: {e}")
+                
+                time.sleep(0.5)  # Rate-limit protection between requests
     
     def start(self, interval_seconds: int = 60):
         """Start polling (blocking)"""
