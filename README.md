@@ -1,3 +1,16 @@
+<div align="center">
+  <h1><code>trading-bot<span class="cursor">_</span></code></h1>
+  <p><b>Algorithmic trading engine. Because sleeping is better than watching charts.</b></p>
+  <p>
+    <a href="https://varun-portfolio-eta.vercel.app/" target="_blank">
+      <img src="https://img.shields.io/badge/Varun_Rana-Portfolio-10b981?style=for-the-badge&logoColor=000000" alt="Portfolio" />
+    </a>
+  </p>
+</div>
+
+<br>
+
+### `[01]` system_overview
 # Bot_Algo - Dual-Market Trading System
 
 ## 🎯 Main Objective
@@ -110,3 +123,10 @@ python run_paper_bot.bat
 ---
 
 *Last updated: January 2026*
+
+<br>
+
+---
+<div align="center">
+  <sub>Built by <a href="https://github.com/varunrana04">Varun Rana</a>. <i>(Because someone has to keep the loss curve going down).</i></sub>
+</div>
